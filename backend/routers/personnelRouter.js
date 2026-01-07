@@ -1,5 +1,5 @@
 import express from 'express';
-import { assignSkillToPersonnel, createPersonnel, deletePersonnelById, getAllPersonnel, getPersonnelById, updatePersonnelById } from '../controllers/personnelController.js';
+import { assignSkillToPersonnel, createPersonnel, deletePersonnelById, getAllPersonnel, getPersonnelById, searchPersonnel, updatePersonnelById } from '../controllers/personnelController.js';
 
 const personnelRouter = express.Router();
 
@@ -9,5 +9,6 @@ personnelRouter.get('/getById/:id',getPersonnelById);
 personnelRouter.put('/update/:id',updatePersonnelById);
 personnelRouter.delete('/delete/:id',deletePersonnelById);
 personnelRouter.post('/assignSkill/:id',assignSkillToPersonnel);
+personnelRouter.post('/search', searchPersonnel);
 
 export default personnelRouter

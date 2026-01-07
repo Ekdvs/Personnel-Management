@@ -1,4 +1,4 @@
-import db from "../config/db";
+import db from "../config/db.js";
 
 //create a new personnel
 export const createPersonnel = async(request, response)=>{
@@ -68,7 +68,7 @@ export const getAllPersonnel = async(request, response)=>{
 //read on e personnel by ID
 export const getPersonnelById = async(request, response)=>{
     try {
-        const { id } = request.params.id;
+        const { id } = request.params;
         const [personnel] = await db.execute('SELECT * FROM personnel WHERE id = ?', [id]);
         if(!id){
             return response.status(400).json(
@@ -113,7 +113,7 @@ export const getPersonnelById = async(request, response)=>{
 //update personnel by ID
 export const updatePersonnelById = async(request, response)=>{
     try {
-        const { id } = request.params.id;
+        const { id } = request.params;
         const { name, email, role, experience_level } = request.body;
         if(!name || !email || !role || !experience_level) {
             return response.status(400).json(
@@ -169,7 +169,7 @@ export const updatePersonnelById = async(request, response)=>{
 //delete personnel by ID
 export const deletePersonnelById = async(request, response)=>{
     try {
-        const { id } = request.params.id;
+        const { id } = request.params;
         if(!id){
             return response.status(400).json(
                 { 
@@ -211,7 +211,7 @@ export const deletePersonnelById = async(request, response)=>{
 //assign Skill
 export const assignSkillToPersonnel = async(request, response)=>{
     try {
-        const { id } = request.params.id;
+        const { id } = request.params;
         const { skill_id,proficiency  } = request.body;
         if(!id){
             return response.status(400).json(
@@ -252,5 +252,80 @@ export const assignSkillToPersonnel = async(request, response)=>{
                 success:false
             }
         );
+    }
+}
+
+// ADDITIONAL FEATURE: Advanced Personnel Search
+export const searchPersonnel = async(request, response) => {
+    try {
+        const { skill_name, min_proficiency, experience_level, role } = request.body;
+
+        let query = `
+            SELECT DISTINCT p.id, p.name, p.email, p.role, p.experience_level, p.created_at
+            FROM personnel p
+        `;
+
+        const conditions = [];
+        const params = [];
+
+        // If searching by skill
+        if(skill_name || min_proficiency) {
+            query += `
+                JOIN personnel_skills ps ON p.id = ps.personnel_id
+                JOIN skills s ON ps.skill_id = s.id
+            `;
+
+            if(skill_name) {
+                conditions.push(`s.name LIKE ?`);
+                params.push(`%${skill_name}%`);
+            }
+
+            if(min_proficiency) {
+                const proficiencyOrder = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+                const minIndex = proficiencyOrder.indexOf(min_proficiency);
+                
+                if(minIndex !== -1) {
+                    const validProficiencies = proficiencyOrder.slice(minIndex);
+                    conditions.push(`ps.proficiency IN (${validProficiencies.map(() => '?').join(',')})`);
+                    params.push(...validProficiencies);
+                }
+            }
+        }
+
+        // Filter by experience level
+        if(experience_level) {
+            conditions.push(`p.experience_level = ?`);
+            params.push(experience_level);
+        }
+
+        // Filter by role
+        if(role) {
+            conditions.push(`p.role LIKE ?`);
+            params.push(`%${role}%`);
+        }
+
+        if(conditions.length > 0) {
+            query += ` WHERE ${conditions.join(' AND ')}`;
+        }
+
+        query += ` ORDER BY p.created_at DESC`;
+
+        const [results] = await db.execute(query, params);
+
+        return response.status(200).json({
+            message: 'Search completed successfully',
+            count: results.length,
+            data: results,
+            error: false,
+            success: true
+        });
+
+    } catch (error) {
+        console.error('Error searching personnel:', error);
+        response.status(500).json({ 
+            message: 'Failed to search personnel',
+            error: true,
+            success: false
+        });
     }
 }

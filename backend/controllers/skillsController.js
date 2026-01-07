@@ -1,4 +1,4 @@
-import db from "../config/db";
+import db from "../config/db.js";
 
 
 //create skill
@@ -76,8 +76,9 @@ export const getAllSkills = async(request, response)=>{
 //update skill by ID
 export const updateSkillById = async(request, response)=>{
     try {
-        const { id } = request.params.id;
+        const { id } = request.params;
         const { name, category, description } = request.body;
+        console.log("id",id);
         if(!id){
             return response.status(400).json(
                 { 
